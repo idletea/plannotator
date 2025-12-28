@@ -137,7 +137,6 @@ interface Annotation {
   text?: string;           // User text for comment/replacement/insertion
   originalText: string;    // The selected/highlighted text
   createdA: number;        // Timestamp for ordering
-  author?: string;         // Tater identity for collaborative sharing
   startMeta?: { parentTagName, parentIndex, textOffset }; // web-highlighter DOM pos
   endMeta?: { parentTagName, parentIndex, textOffset };
 }
@@ -168,54 +167,190 @@ Code blocks can't use web-highlighter (content not directly selectable). Instead
 - ID format: `codeblock-{timestamp}`
 - Must handle removal separately via `data-bind-id` attribute
 
-## URL-Based Sharing
+### Serialization
 
-Plannotator supports decentralized sharing via URL hash. The entire plan and annotations are compressed into the URL — no server storage required.
+**Current**: `exportDiff()` in `utils/parser.ts` — lossy human-readable export:
+```markdown
+## 1. Remove this
+\`\`\`
+selected text here
+\`\`\`
 
-### Implementation
-
-| File | Purpose |
-|------|---------|
-| `utils/sharing.ts` | Compress/decompress using native `CompressionStream` (deflate-raw) + base64url |
-| `hooks/useSharing.ts` | URL state management, hash change detection |
-| `components/ExportModal.tsx` | Tabbed modal with Share and Raw Diff tabs |
-
-### Share Format
-
-```typescript
-interface SharePayload {
-  p: string;  // Plan markdown
-  a: ShareableAnnotation[];  // Minimal annotation tuples
-}
-
-// Annotations compressed to tuples: [type, originalText, text?, author?]
-type ShareableAnnotation =
-  | ['D', string, string | null]              // Deletion
-  | ['R', string, string, string | null]      // Replacement
-  | ['C', string, string, string | null]      // Comment
-  | ['I', string, string, string | null];     // Insertion
+## 2. Change this
+**From:** \`\`\`old\`\`\`
+**To:** \`\`\`new\`\`\`
 ```
 
-### How It Works
+**No round-trip persistence yet**. Considerations:
+- `startMeta`/`endMeta` fragile if DOM changes
+- `blockId` + offsets more stable but still break on content edits
+- Options: localStorage, server-side JSON, adjacent `.annotations.json`
 
-**Sharing:**
-1. User clicks Share → payload compressed with `deflate-raw` → base64url encoded
-2. URL becomes `plannotator.app/#<compressed-data>`
-3. Typical plan + annotations: ~1-2KB URL
+---
 
-**Loading:**
-1. On mount, check `location.hash`
-2. If present, decompress → restore plan and annotations
-3. Find annotation text in DOM using `TreeWalker`
-4. Apply `<mark>` highlights programmatically
+## Portable Sharing Design (textarea.my Pattern)
 
-### Tater Identity System
+Inspired by [textarea.my](https://github.com/antonmedv/textarea) which stores everything in URL hash.
 
-Anonymous identities for collaborative annotation:
-- Format: `{adjective}-{noun}-tater` (e.g., "swift-falcon-tater")
-- Generated via `unique-username-generator` library
-- Stored in localStorage, shown on annotation cards
-- Regenerate anytime in Settings
+### Core Mechanism
+
+```javascript
+// Compress: string → deflate → base64url
+async function compress(string) {
+  const byteArray = new TextEncoder().encode(string);
+  const stream = new CompressionStream('deflate-raw');
+  const writer = stream.writable.getWriter();
+  writer.write(byteArray);
+  writer.close();
+  const buffer = await new Response(stream.readable).arrayBuffer();
+  return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+// Decompress: base64url → inflate → string
+async function decompress(b64) {
+  const binary = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
+  const byteArray = Uint8Array.from(binary, c => c.charCodeAt(0));
+  const stream = new DecompressionStream('deflate-raw');
+  const writer = stream.writable.getWriter();
+  writer.write(byteArray);
+  writer.close();
+  const buffer = await new Response(stream.readable).arrayBuffer();
+  return new TextDecoder().decode(buffer);
+}
+```
+
+### Minimal Shareable Format
+
+Strip annotations to essential data only:
+
+```typescript
+// Full Annotation → Shareable tuple
+// [type_char, originalText, text?]
+type ShareableAnnotation =
+  | ['D', string]           // Deletion
+  | ['R', string, string]   // Replacement: original, replacement
+  | ['C', string, string]   // Comment: original, comment
+  | ['I', string, string];  // Insertion: context, new text
+
+// Example transformation
+const shareable = annotations.map(a => {
+  const t = a.type[0] as 'D'|'R'|'C'|'I';
+  return a.text ? [t, a.originalText, a.text] : [t, a.originalText];
+});
+```
+
+### Compression Results (Tested)
+
+| Annotations | Raw JSON | Compressed | URL Safe? |
+|-------------|----------|------------|-----------|
+| 5           | 351 chars | 316 chars | ✅ Yes |
+| 100         | ~7KB     | 383 chars | ✅ Yes |
+
+Deflate excels at repetitive text. URL limit: ~2KB safe, ~64KB modern browsers.
+
+### Sharing Approaches
+
+**Option A: Annotations Only (Same Plan)**
+```
+plannotator.app/#<compressed-annotations>
+```
+- Assumes recipients have identical plan
+- Smallest URL, ideal for team collaboration
+
+**Option B: Plan Hash + Annotations**
+```
+plannotator.app/#<plan-hash>.<compressed-annotations>
+```
+- Include first 8 chars of SHA-256 of plan content
+- Warn if plan doesn't match: "These annotations were made on a different version"
+
+**Option C: Full Plan + Annotations**
+```
+plannotator.app/#<compressed-plan-and-annotations>
+```
+- Self-contained, works without server
+- Larger URL but still feasible for most plans
+
+### Reconstruction on Load
+
+```typescript
+async function loadFromHash(hash: string): Promise<Annotation[]> {
+  const data = JSON.parse(await decompress(hash));
+  return data.map(([type, original, text], i) => ({
+    id: `shared-${i}`,
+    blockId: '',  // Reconstruct by text search
+    startOffset: 0,
+    endOffset: 0,
+    type: { D: 'DELETION', R: 'REPLACEMENT', C: 'COMMENT', I: 'INSERTION' }[type],
+    text,
+    originalText: original,
+    createdA: Date.now() + i, // Preserve order
+    // startMeta/endMeta: Reconstruct when highlighting
+  }));
+}
+
+// Find position by text matching
+function findTextPosition(blocks: Block[], originalText: string) {
+  for (const block of blocks) {
+    const idx = block.content.indexOf(originalText);
+    if (idx !== -1) {
+      return { blockId: block.id, startOffset: idx, endOffset: idx + originalText.length };
+    }
+  }
+  return null; // Orphaned annotation
+}
+```
+
+### Collaborative Flow
+
+```
+Developer A                          Developer B
+    │                                     │
+    ├── Reviews plan                      │
+    ├── Adds annotations                  │
+    ├── Clicks "Share"                    │
+    │   └── Copies URL with #hash         │
+    │                                     │
+    ├───────── Sends URL ─────────────────►
+    │                                     │
+    │                                     ├── Opens URL
+    │                                     ├── Annotations auto-load
+    │                                     ├── Adds more annotations
+    │                                     ├── Clicks "Share"
+    │                                     │   └── New URL with merged annotations
+    │                                     │
+    ◄───────── Sends URL ─────────────────┤
+    │                                     │
+```
+
+### Edge Cases
+
+1. **Text not found**: Show as "orphaned" annotation in sidebar
+2. **Duplicate matches**: Use first match, or require unique context
+3. **Plan changed**: Hash mismatch warning, attempt best-effort matching
+4. **URL too long**: Offer download as `.annotations.json` file instead
+
+### Key Insight from textarea.my/md
+
+The `md.html` variant stores **raw markdown** but renders styled output:
+- Storage: `article.textContent` (raw markdown)
+- Display: `parseMarkdown()` wraps syntax in `<span class="md-*">`
+- Editing: `contenteditable="plaintext-only"` captures raw text
+
+**Implication for Plannotator**: Annotations should reference **text content**, not DOM.
+The DOM is ephemeral (rebuilt on each load). Text matching is stable.
+
+```
+Load Flow:
+  hash → decompress → { plan: string, annotations: [] }
+                              │
+              ┌───────────────┴───────────────┐
+              ▼                               ▼
+    parseMarkdown(plan)              for each annotation:
+         → DOM                         find text in DOM
+                                       apply <mark> highlight
+```
 
 ## Development
 
