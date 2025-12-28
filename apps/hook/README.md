@@ -2,9 +2,9 @@
 
 This directory contains the Claude Code plugin configuration for Plannotator.
 
-## Installation
+## Prerequisites
 
-### Step 1: Install the binary
+Install the binary:
 
 **macOS / Linux / WSL:**
 ```bash
@@ -21,28 +21,22 @@ irm https://plannotator.ai/install.ps1 | iex
 curl -fsSL https://plannotator.ai/install.cmd -o install.cmd && install.cmd && del install.cmd
 ```
 
-### Step 2: Add the marketplace (in Claude Code)
+---
+
+[Plugin Installation](#plugin-installation) · [Manual Installation (Hooks)](#manual-installation-hooks)
+
+---
+
+## Plugin Installation
+
+In Claude Code:
 
 ```
 /plugin marketplace add backnotprop/plannotator
-```
-
-### Step 3: Install the plugin (in Claude Code)
-
-```
 /plugin install plannotator@plannotator
 ```
 
-## How It Works
-
-When Claude Code calls `ExitPlanMode`, this hook intercepts and:
-
-1. Opens Plannotator UI in your browser
-2. Lets you annotate the plan visually
-3. Approve → Claude proceeds with implementation
-4. Request changes → Your annotations are sent back to Claude
-
-## Manual Installation (Alternative)
+## Manual Installation (Hooks)
 
 If you prefer not to use the plugin system, add this to your `~/.claude/settings.json`:
 
@@ -64,6 +58,15 @@ If you prefer not to use the plugin system, add this to your `~/.claude/settings
   }
 }
 ```
+
+## How It Works
+
+When Claude Code calls `ExitPlanMode`, this hook intercepts and:
+
+1. Opens Plannotator UI in your browser
+2. Lets you annotate the plan visually
+3. Approve → Claude proceeds with implementation
+4. Request changes → Your annotations are sent back to Claude
 
 ## Development
 
