@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="plannotator_banner.webp" alt="Plannotator" width="100%" />
+  <img src="apps/marketing/public/og-image.webp" alt="Plannotator" width="100%" />
 </p>
 
 # Plannotator
@@ -16,16 +16,19 @@ Interactive Plan Review: Mark up and refine your plans using a UI, easily share 
 ## Install
 
 **macOS / Linux / WSL:**
+
 ```bash
 curl -fsSL https://plannotator.ai/install.sh | bash
 ```
 
 **Windows PowerShell:**
+
 ```powershell
 irm https://plannotator.ai/install.ps1 | iex
 ```
 
 Then in Claude Code:
+
 ```
 /plugin marketplace add backnotprop/plannotator
 /plugin install plannotator@plannotator
@@ -33,21 +36,14 @@ Then in Claude Code:
 
 See [apps/hook/README.md](apps/hook/README.md) for detailed installation instructions.
 
-## Monorepo Structure
+## How It Works
 
-```
-apps/
-  hook/       # Claude Code plugin + binary server
-  portal/     # Editor at share.plannotator.ai
-  marketing/  # Landing page at plannotator.ai
-packages/
-  editor/     # Main App.tsx + styles
-  ui/         # Shared components, utils, types
-scripts/
-  install.sh  # macOS/Linux install script
-  install.ps1 # Windows PowerShell install script
-  install.cmd # Windows CMD install script
-```
+When Claude Code calls `ExitPlanMode`, this hook intercepts and:
+
+1. Opens Plannotator UI in your browser
+2. Lets you annotate the plan visually
+3. Approve → Claude proceeds with implementation
+4. Request changes → Your annotations are sent back to Claude
 
 ## Development
 
