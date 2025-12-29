@@ -74,7 +74,7 @@ export const Landing: React.FC<LandingProps> = ({ onEnter }) => {
             <div className="flex items-center gap-3">
               {/* YouTube button */}
               <a
-                href="https://www.youtube.com/watch?v=VIDEO_ID"
+                href="https://www.youtube.com/watch?v=a_AT7cEN_9I"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-secondary text-white font-medium hover:opacity-90 transition-opacity"

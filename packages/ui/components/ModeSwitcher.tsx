@@ -75,7 +75,7 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({ mode, onChange, tate
             <iframe
               width="100%"
               height="100%"
-              src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1"
+              src="https://www.youtube.com/embed/a_AT7cEN_9I?autoplay=1"
               title="How Plannotator Works"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
