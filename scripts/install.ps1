@@ -101,5 +101,10 @@ if ($userPath -notlike "*$INSTALL_DIR*") {
 }
 
 Write-Output ""
-Write-Output "Run 'plannotator --help' to get started."
+Write-Output "Test the install:"
+Write-Output '  echo ''{"tool_input":{"plan":"# Test Plan\\n\\nHello world"}}'' | plannotator'
+Write-Output ""
+Write-Output "Then install the Claude Code plugin:"
+Write-Output "  /plugin marketplace add backnotprop/plannotator"
+Write-Output "  /plugin install plannotator@plannotator"
 Write-Output ""

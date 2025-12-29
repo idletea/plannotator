@@ -128,6 +128,11 @@ if !ERRORLEVEL! neq 0 (
 )
 
 echo.
-echo Run 'plannotator --help' to get started.
+echo Test the install:
+echo   echo {"tool_input":{"plan":"# Test Plan\\n\\nHello world"}} ^| plannotator
+echo.
+echo Then install the Claude Code plugin:
+echo   /plugin marketplace add backnotprop/plannotator
+echo   /plugin install plannotator@plannotator
 echo.
 exit /b 0

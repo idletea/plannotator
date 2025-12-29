@@ -73,4 +73,9 @@ if ! echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then
 fi
 
 echo ""
-echo "Run 'plannotator --help' to get started."
+echo "Test the install:"
+echo '  echo '"'"'{"tool_input":{"plan":"# Test Plan\\\\n\\\\nHello world"}}'"'"' | plannotator'
+echo ""
+echo "Then install the Claude Code plugin:"
+echo "  /plugin marketplace add backnotprop/plannotator"
+echo "  /plugin install plannotator@plannotator"
