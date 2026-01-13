@@ -77,6 +77,11 @@ Add to your `opencode.json`:
 curl -fsSL https://plannotator.ai/install.sh | bash
 ```
 
+**Windows:**
+```powershell
+irm https://plannotator.ai/install.ps1 | iex
+```
+
 This also clears any cached plugin versions. Then restart OpenCode.
 
 ---
