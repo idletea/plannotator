@@ -14,7 +14,7 @@ import { Settings } from '@plannotator/ui/components/Settings';
 import { useSharing } from '@plannotator/ui/hooks/useSharing';
 import { storage } from '@plannotator/ui/utils/storage';
 import { UpdateBanner } from '@plannotator/ui/components/UpdateBanner';
-import { getObsidianSettings } from '@plannotator/ui/utils/obsidian';
+import { getObsidianSettings, getEffectiveVaultPath, CUSTOM_PATH_SENTINEL } from '@plannotator/ui/utils/obsidian';
 import { getBearSettings } from '@plannotator/ui/utils/bear';
 import { getAgentSwitchSettings, getEffectiveAgentName } from '@plannotator/ui/utils/agentSwitch';
 import { getPlanSaveSettings } from '@plannotator/ui/utils/planSave';
@@ -494,9 +494,10 @@ const App: React.FC = () => {
         ...(planSaveSettings.customPath && { customPath: planSaveSettings.customPath }),
       };
 
-      if (obsidianSettings.enabled && obsidianSettings.vaultPath) {
+      const effectiveVaultPath = getEffectiveVaultPath(obsidianSettings);
+      if (obsidianSettings.enabled && effectiveVaultPath) {
         body.obsidian = {
-          vaultPath: obsidianSettings.vaultPath,
+          vaultPath: effectiveVaultPath,
           folder: obsidianSettings.folder || 'plannotator',
           plan: markdown,
         };

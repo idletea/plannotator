@@ -5,6 +5,7 @@ import { getIdentity, regenerateIdentity } from '../utils/identity';
 import {
   getObsidianSettings,
   saveObsidianSettings,
+  CUSTOM_PATH_SENTINEL,
   type ObsidianSettings,
 } from '../utils/obsidian';
 import {
@@ -358,17 +359,29 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
                                 Detecting...
                               </div>
                             ) : detectedVaults.length > 0 ? (
-                              <select
-                                value={obsidian.vaultPath}
-                                onChange={(e) => handleObsidianChange({ vaultPath: e.target.value })}
-                                className="w-full px-3 py-2 bg-muted rounded-lg text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
-                              >
-                                {detectedVaults.map((vault) => (
-                                  <option key={vault} value={vault}>
-                                    {vault.split('/').pop() || vault}
-                                  </option>
-                                ))}
-                              </select>
+                              <>
+                                <select
+                                  value={obsidian.vaultPath}
+                                  onChange={(e) => handleObsidianChange({ vaultPath: e.target.value })}
+                                  className="w-full px-3 py-2 bg-muted rounded-lg text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
+                                >
+                                  {detectedVaults.map((vault) => (
+                                    <option key={vault} value={vault}>
+                                      {vault.split('/').pop() || vault}
+                                    </option>
+                                  ))}
+                                  <option value={CUSTOM_PATH_SENTINEL}>Custom path...</option>
+                                </select>
+                                {obsidian.vaultPath === CUSTOM_PATH_SENTINEL && (
+                                  <input
+                                    type="text"
+                                    value={obsidian.customPath || ''}
+                                    onChange={(e) => handleObsidianChange({ customPath: e.target.value })}
+                                    placeholder="/path/to/vault"
+                                    className="w-full mt-2 px-3 py-2 bg-muted rounded-lg text-xs font-mono placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                                  />
+                                )}
+                              </>
                             ) : (
                               <input
                                 type="text"
@@ -395,7 +408,9 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
 
                         {/* Save path preview */}
                         <div className="text-[10px] text-muted-foreground/70">
-                          Plans saved to: {obsidian.vaultPath || '...'}/{obsidian.folder || 'plannotator'}/
+                          Plans saved to: {obsidian.vaultPath === CUSTOM_PATH_SENTINEL
+                            ? (obsidian.customPath || '...')
+                            : (obsidian.vaultPath || '...')}/{obsidian.folder || 'plannotator'}/
                         </div>
 
                         {/* Frontmatter Preview */}

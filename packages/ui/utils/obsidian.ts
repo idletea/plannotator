@@ -12,6 +12,10 @@ import { storage } from './storage';
 const STORAGE_KEY_ENABLED = 'plannotator-obsidian-enabled';
 const STORAGE_KEY_VAULT = 'plannotator-obsidian-vault';
 const STORAGE_KEY_FOLDER = 'plannotator-obsidian-folder';
+const STORAGE_KEY_CUSTOM_PATH = 'plannotator-obsidian-custom-path';
+
+// Sentinel value for custom path selection
+export const CUSTOM_PATH_SENTINEL = '__custom__';
 
 // Default folder name in the vault
 const DEFAULT_FOLDER = 'plannotator';
@@ -21,8 +25,9 @@ const DEFAULT_FOLDER = 'plannotator';
  */
 export interface ObsidianSettings {
   enabled: boolean;
-  vaultPath: string;
+  vaultPath: string;      // Selected vault path OR '__custom__' sentinel
   folder: string;
+  customPath?: string;    // User-entered path when vaultPath === '__custom__'
 }
 
 /**
@@ -33,6 +38,7 @@ export function getObsidianSettings(): ObsidianSettings {
     enabled: storage.getItem(STORAGE_KEY_ENABLED) === 'true',
     vaultPath: storage.getItem(STORAGE_KEY_VAULT) || '',
     folder: storage.getItem(STORAGE_KEY_FOLDER) || DEFAULT_FOLDER,
+    customPath: storage.getItem(STORAGE_KEY_CUSTOM_PATH) || undefined,
   };
 }
 
@@ -43,6 +49,17 @@ export function saveObsidianSettings(settings: ObsidianSettings): void {
   storage.setItem(STORAGE_KEY_ENABLED, String(settings.enabled));
   storage.setItem(STORAGE_KEY_VAULT, settings.vaultPath);
   storage.setItem(STORAGE_KEY_FOLDER, settings.folder);
+  storage.setItem(STORAGE_KEY_CUSTOM_PATH, settings.customPath || '');
+}
+
+/**
+ * Get the effective vault path, resolving custom path if selected
+ */
+export function getEffectiveVaultPath(settings: ObsidianSettings): string {
+  if (settings.vaultPath === CUSTOM_PATH_SENTINEL) {
+    return settings.customPath || '';
+  }
+  return settings.vaultPath;
 }
 
 /**
@@ -50,7 +67,8 @@ export function saveObsidianSettings(settings: ObsidianSettings): void {
  */
 export function isObsidianConfigured(): boolean {
   const settings = getObsidianSettings();
-  return settings.enabled && settings.vaultPath.trim().length > 0;
+  const effectivePath = getEffectiveVaultPath(settings);
+  return settings.enabled && effectivePath.trim().length > 0;
 }
 
 /**
