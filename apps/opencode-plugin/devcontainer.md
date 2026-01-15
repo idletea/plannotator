@@ -55,12 +55,12 @@ If your environment already has `SSH_TTY` or `SSH_CONNECTION` set (common in SSH
 
 **Plugin not updating?**
 ```bash
-rm -rf ~/.cache/opencode/node_modules/@plannotator
+rm -rf ~/.bun/install/cache/@plannotator
 ```
 
 **OpenCode crashes on startup?**
 ```bash
-rm -rf ~/.cache/opencode
+rm -rf ~/.cache/opencode ~/.bun/install/cache/@opencode-ai
 ```
 
 **Port not accessible?**
