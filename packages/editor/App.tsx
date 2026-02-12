@@ -25,6 +25,8 @@ import { getAgentSwitchSettings, getEffectiveAgentName } from '@plannotator/ui/u
 import { getPlanSaveSettings } from '@plannotator/ui/utils/planSave';
 import { getUIPreferences, needsUIFeaturesSetup, type UIPreferences } from '@plannotator/ui/utils/uiPreferences';
 import { getEditorMode, saveEditorMode } from '@plannotator/ui/utils/editorMode';
+import { useResizablePanel } from '@plannotator/ui/hooks/useResizablePanel';
+import { ResizeHandle } from '@plannotator/ui/components/ResizeHandle';
 import {
   getPermissionModeSettings,
   needsPermissionModeSetup,
@@ -363,6 +365,14 @@ const App: React.FC = () => {
   const [noteSaveToast, setNoteSaveToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const viewerRef = useRef<ViewerHandle>(null);
   const containerRef = useRef<HTMLElement>(null);
+
+  // Resizable panels
+  const panelResize = useResizablePanel({ storageKey: 'plannotator-panel-width' });
+  const tocResize = useResizablePanel({
+    storageKey: 'plannotator-toc-width',
+    defaultWidth: 240, minWidth: 160, maxWidth: 400, side: 'left',
+  });
+  const isResizing = panelResize.isDragging || tocResize.isDragging;
 
   // Track active section for TOC highlighting
   const headingCount = useMemo(() => blocks.filter(b => b.type === 'heading').length, [blocks]);
@@ -1021,20 +1031,24 @@ const App: React.FC = () => {
         </header>
 
         {/* Main Content */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className={`flex-1 flex overflow-hidden ${isResizing ? 'select-none' : ''}`}>
           {/* Table of Contents */}
           {uiPrefs.tocEnabled && (
-            <TableOfContents
-              blocks={blocks}
-              annotations={annotations}
-              activeId={activeSection}
-              onNavigate={handleTocNavigate}
-              className="hidden lg:block w-60 sticky top-12 h-[calc(100vh-3rem)] flex-shrink-0"
-            />
+            <>
+              <TableOfContents
+                blocks={blocks}
+                annotations={annotations}
+                activeId={activeSection}
+                onNavigate={handleTocNavigate}
+                className="hidden lg:block sticky top-12 h-[calc(100vh-3rem)] flex-shrink-0"
+                style={{ width: tocResize.width }}
+              />
+              <ResizeHandle {...tocResize.handleProps} className="hidden lg:block" />
+            </>
           )}
 
           {/* Document Area */}
-          <main ref={containerRef} className="flex-1 overflow-y-auto bg-grid">
+          <main ref={containerRef} className="flex-1 min-w-0 overflow-y-auto bg-grid">
             <div className="min-h-full flex flex-col items-center px-4 py-3 md:px-10 md:py-8 xl:px-16">
               {/* Mode Switcher */}
               <div className="w-full max-w-[832px] 2xl:max-w-5xl mb-3 md:mb-4 flex justify-start">
@@ -1061,6 +1075,9 @@ const App: React.FC = () => {
             </div>
           </main>
 
+          {/* Resize Handle */}
+          {isPanelOpen && <ResizeHandle {...panelResize.handleProps} />}
+
           {/* Annotation Panel */}
           <AnnotationPanel
             isOpen={isPanelOpen}
@@ -1072,6 +1089,7 @@ const App: React.FC = () => {
             onEdit={handleEditAnnotation}
             shareUrl={shareUrl}
             sharingEnabled={sharingEnabled}
+            width={panelResize.width}
           />
         </div>
 

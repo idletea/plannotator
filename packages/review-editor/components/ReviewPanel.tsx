@@ -17,6 +17,7 @@ interface ReviewPanelProps {
   onSelectAnnotation: (id: string | null) => void;
   onDeleteAnnotation: (id: string) => void;
   feedbackMarkdown?: string;
+  width?: number;
 }
 
 function formatTimestamp(ts: number): string {
@@ -45,6 +46,7 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({
   onSelectAnnotation,
   onDeleteAnnotation,
   feedbackMarkdown,
+  width,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -76,7 +78,7 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({
   if (!isOpen) return null;
 
   return (
-    <aside className="w-72 border-l border-border/50 bg-card/30 backdrop-blur-sm flex flex-col">
+    <aside className="border-l border-border/50 bg-card/30 backdrop-blur-sm flex flex-col flex-shrink-0" style={{ width: width ?? 288 }}>
         {/* Header */}
         <div className="p-3 border-b border-border/50">
           <div className="flex items-center justify-between">

@@ -13,6 +13,7 @@ interface PanelProps {
   selectedId: string | null;
   shareUrl?: string;
   sharingEnabled?: boolean;
+  width?: number;
 }
 
 export const AnnotationPanel: React.FC<PanelProps> = ({
@@ -24,7 +25,8 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
   onEdit,
   selectedId,
   shareUrl,
-  sharingEnabled = true
+  sharingEnabled = true,
+  width,
 }) => {
   const [copied, setCopied] = useState(false);
   const sortedAnnotations = [...annotations].sort((a, b) => a.createdA - b.createdA);
@@ -43,7 +45,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
   if (!isOpen) return null;
 
   return (
-    <aside className="w-72 border-l border-border/50 bg-card/30 backdrop-blur-sm flex flex-col">
+    <aside className="border-l border-border/50 bg-card/30 backdrop-blur-sm flex flex-col flex-shrink-0" style={{ width: width ?? 288 }}>
       {/* Header */}
       <div className="p-3 border-b border-border/50">
         <div className="flex items-center justify-between">

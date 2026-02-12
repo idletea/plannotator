@@ -8,6 +8,8 @@ import { storage, getAutoClose } from '@plannotator/ui/utils/storage';
 import { getIdentity } from '@plannotator/ui/utils/identity';
 import { getAgentSwitchSettings, getEffectiveAgentName } from '@plannotator/ui/utils/agentSwitch';
 import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, DiffAnnotationMetadata } from '@plannotator/ui/types';
+import { useResizablePanel } from '@plannotator/ui/hooks/useResizablePanel';
+import { ResizeHandle } from '@plannotator/ui/components/ResizeHandle';
 import { DiffViewer } from './components/DiffViewer';
 import { ReviewPanel } from './components/ReviewPanel';
 import { FileTree } from './components/FileTree';
@@ -154,6 +156,14 @@ const ReviewApp: React.FC = () => {
   const [repoInfo, setRepoInfo] = useState<{ display: string; branch?: string } | null>(null);
 
   const identity = useMemo(() => getIdentity(), []);
+
+  // Resizable panels
+  const panelResize = useResizablePanel({ storageKey: 'plannotator-review-panel-width' });
+  const fileTreeResize = useResizablePanel({
+    storageKey: 'plannotator-filetree-width',
+    defaultWidth: 256, minWidth: 160, maxWidth: 400, side: 'left',
+  });
+  const isResizing = panelResize.isDragging || fileTreeResize.isDragging;
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -714,28 +724,32 @@ const ReviewApp: React.FC = () => {
         </header>
 
         {/* Main content */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className={`flex-1 flex overflow-hidden ${isResizing ? 'select-none' : ''}`}>
           {/* File tree sidebar - show when multiple files OR diff options available */}
           {(files.length > 1 || gitContext?.diffOptions) && (
-            <FileTree
-              files={files}
-              activeFileIndex={activeFileIndex}
-              onSelectFile={handleFileSwitch}
-              annotations={annotations}
-              viewedFiles={viewedFiles}
-              onToggleViewed={handleToggleViewed}
-              hideViewedFiles={hideViewedFiles}
-              onToggleHideViewed={() => setHideViewedFiles(prev => !prev)}
-              enableKeyboardNav={!showExportModal}
-              diffOptions={gitContext?.diffOptions}
-              activeDiffType={diffType}
-              onSelectDiff={handleDiffSwitch}
-              isLoadingDiff={isLoadingDiff}
-            />
+            <>
+              <FileTree
+                files={files}
+                activeFileIndex={activeFileIndex}
+                onSelectFile={handleFileSwitch}
+                annotations={annotations}
+                viewedFiles={viewedFiles}
+                onToggleViewed={handleToggleViewed}
+                hideViewedFiles={hideViewedFiles}
+                onToggleHideViewed={() => setHideViewedFiles(prev => !prev)}
+                enableKeyboardNav={!showExportModal}
+                diffOptions={gitContext?.diffOptions}
+                activeDiffType={diffType}
+                onSelectDiff={handleDiffSwitch}
+                isLoadingDiff={isLoadingDiff}
+                width={fileTreeResize.width}
+              />
+              <ResizeHandle {...fileTreeResize.handleProps} />
+            </>
           )}
 
           {/* Diff viewer */}
-          <main className="flex-1 overflow-hidden">
+          <main className="flex-1 min-w-0 overflow-hidden">
             {activeFile ? (
               <DiffViewer
                 patch={activeFile.patch}
@@ -779,6 +793,9 @@ const ReviewApp: React.FC = () => {
             )}
           </main>
 
+          {/* Resize Handle */}
+          {isPanelOpen && <ResizeHandle {...panelResize.handleProps} />}
+
           {/* Annotations panel */}
           <ReviewPanel
             isOpen={isPanelOpen}
@@ -789,6 +806,7 @@ const ReviewApp: React.FC = () => {
             onSelectAnnotation={handleSelectAnnotation}
             onDeleteAnnotation={handleDeleteAnnotation}
             feedbackMarkdown={feedbackMarkdown}
+            width={panelResize.width}
           />
         </div>
 

@@ -12,6 +12,7 @@ interface TableOfContentsProps {
   activeId: string | null;
   onNavigate: (blockId: string) => void;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 interface TocItemProps {
@@ -142,6 +143,7 @@ export function TableOfContents({
   activeId,
   onNavigate,
   className = '',
+  style,
 }: TableOfContentsProps) {
   // Calculate annotation counts per section
   const annotationCounts = useMemo(
@@ -192,6 +194,7 @@ export function TableOfContents({
     <nav
       className={`bg-card/50 backdrop-blur-sm border-r border-border overflow-y-auto ${className}`}
       aria-label="Table of contents"
+      style={style}
     >
       <div className="p-4">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">

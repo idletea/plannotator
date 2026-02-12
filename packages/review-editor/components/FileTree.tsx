@@ -28,6 +28,7 @@ interface FileTreeProps {
   activeDiffType?: string;
   onSelectDiff?: (diffType: string) => void;
   isLoadingDiff?: boolean;
+  width?: number;
 }
 
 export const FileTree: React.FC<FileTreeProps> = ({
@@ -44,6 +45,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
   activeDiffType,
   onSelectDiff,
   isLoadingDiff,
+  width,
 }) => {
   // Keyboard navigation: j/k or arrow keys
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -82,7 +84,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
   };
 
   return (
-    <aside className="w-64 border-r border-border bg-card/30 flex flex-col overflow-hidden">
+    <aside className="border-r border-border bg-card/30 flex flex-col flex-shrink-0 overflow-hidden" style={{ width: width ?? 256 }}>
       {/* Header */}
       <div className="p-3 border-b border-border/50">
         <div className="flex items-center justify-between">
