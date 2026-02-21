@@ -26,11 +26,13 @@ Interactive Plan Review for AI Coding Agents. Mark up and refine your plans usin
 </table>
 
 
-| | |
-|---|---|
-| **Visual Plan Review** | Approve or deny agent plans with inline annotations |
-| **Code Review** | Review git diffs with line-level annotations |
-| **Annotate Any File** | Annotate any markdown file and send feedback to your agent |
+### Features
+
+| Feature | How | Description |
+|---------|-----|-------------|
+| **Visual Plan Review** | Built-in hook | Approve or deny agent plans with inline annotations |
+| **Code Review** | `/plannotator-review` | Review git diffs with line-level annotations |
+| **Annotate Any File** | `/plannotator-annotate <file>` | Annotate any markdown file and send feedback to your agent |
 
 ## Install
 
