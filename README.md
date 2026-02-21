@@ -29,9 +29,9 @@ Interactive Plan Review for AI Coding Agents. Mark up and refine your plans usin
 ### Features
 
 <table>
-<tr><td><strong>Visual Plan Review</strong></td><td>Built-in hook</td><td>Approve or deny agent plans with inline annotations</td></tr>
-<tr><td><strong>Code Review</strong></td><td><code>/plannotator-review</code></td><td>Review git diffs with line-level annotations</td></tr>
-<tr><td><strong>Annotate Any File</strong></td><td><code>/plannotator-annotate &lt;file&gt;</code></td><td>Annotate any markdown file and send feedback to your agent</td></tr>
+<tr><td nowrap><strong>Visual Plan Review</strong></td><td nowrap>Built-in hook</td><td>Approve or deny agent plans with inline annotations</td></tr>
+<tr><td nowrap><strong>Code Review</strong></td><td nowrap><code>/plannotator-review</code></td><td>Review git diffs with line-level annotations</td></tr>
+<tr><td nowrap><strong>Annotate Any File</strong></td><td nowrap><code>/plannotator-annotate &lt;file&gt;</code></td><td>Annotate any markdown file and send feedback to your agent</td></tr>
 </table>
 
 ## Install
