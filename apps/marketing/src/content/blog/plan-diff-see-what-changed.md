@@ -6,7 +6,7 @@ author: "backnotprop"
 tags: ["plan-diff", "plan-mode", "version-history"]
 ---
 
-**Plannotator is an open-source review UI for AI coding agents.** The latest release adds Plan Diff — a way to see exactly what changed when your agent revises a plan after feedback.
+**Plannotator is an open-source review UI for AI coding agents.** The latest release adds Plan Diff — a way to see exactly what changed when your agent revises a plan after feedback. Plan Diff works natively with coding agents via hooks — you use plan mode the same way you always do. When the agent updates the plan, you can provide annotations as usual and now see exactly what was added, removed, or changed.
 
 ## Watch the Demo
 
