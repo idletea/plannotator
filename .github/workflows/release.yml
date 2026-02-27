@@ -127,6 +127,8 @@ jobs:
 
       - name: Publish @plannotator/opencode
         working-directory: apps/opencode-plugin
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           bun pm pack
           if [[ "$DRY_RUN" == "false" ]]; then
@@ -135,6 +137,8 @@ jobs:
 
       - name: Publish @plannotator/pi-extension
         working-directory: apps/pi-extension
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           bun pm pack
           if [[ "$DRY_RUN" == "false" ]]; then
