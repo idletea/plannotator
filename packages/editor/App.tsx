@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { parseMarkdownToBlocks, exportAnnotations, extractFrontmatter, Frontmatter } from '@plannotator/ui/utils/parser';
+import { parseMarkdownToBlocks, exportAnnotations, exportLinkedDocAnnotations, extractFrontmatter, Frontmatter } from '@plannotator/ui/utils/parser';
 import { Viewer, ViewerHandle } from '@plannotator/ui/components/Viewer';
 import { AnnotationPanel } from '@plannotator/ui/components/AnnotationPanel';
 import { ExportModal } from '@plannotator/ui/components/ExportModal';
@@ -40,6 +40,7 @@ import { ImageAnnotator } from '@plannotator/ui/components/ImageAnnotator';
 import { deriveImageName } from '@plannotator/ui/components/AttachmentsButton';
 import { useSidebar } from '@plannotator/ui/hooks/useSidebar';
 import { usePlanDiff, type VersionInfo } from '@plannotator/ui/hooks/usePlanDiff';
+import { useLinkedDoc } from '@plannotator/ui/hooks/useLinkedDoc';
 import { SidebarTabs } from '@plannotator/ui/components/sidebar/SidebarTabs';
 import { SidebarContainer } from '@plannotator/ui/components/sidebar/SidebarContainer';
 import { PlanDiffViewer } from '@plannotator/ui/components/plan-diff/PlanDiffViewer';
@@ -407,6 +408,13 @@ const App: React.FC = () => {
   // Plan diff computation
   const planDiff = usePlanDiff(markdown, previousPlan, versionInfo);
 
+  // Linked document navigation
+  const linkedDocHook = useLinkedDoc({
+    markdown, annotations, selectedAnnotationId, globalAttachments,
+    setMarkdown, setAnnotations, setSelectedAnnotationId, setGlobalAttachments,
+    viewerRef, sidebar,
+  });
+
   // Track active section for TOC highlighting
   const headingCount = useMemo(() => blocks.filter(b => b.type === 'heading').length, [blocks]);
   const activeSection = useActiveSection(containerRef, headingCount);
@@ -621,7 +629,10 @@ const App: React.FC = () => {
       }
 
       // Include annotations as feedback if any exist (for OpenCode "approve with notes")
-      if (annotations.length > 0 || globalAttachments.length > 0) {
+      const hasDocAnnotations = Array.from(linkedDocHook.getDocAnnotations().values()).some(
+        (d) => d.annotations.length > 0 || d.globalAttachments.length > 0
+      );
+      if (annotations.length > 0 || globalAttachments.length > 0 || hasDocAnnotations) {
         body.feedback = annotationsOutput;
       }
 
@@ -695,6 +706,9 @@ const App: React.FC = () => {
       // Don't intercept in demo/share mode (no API)
       if (!isApiMode) return;
 
+      // Don't submit while viewing a linked doc
+      if (linkedDocHook.isActive) return;
+
       e.preventDefault();
 
       // Annotate mode: always send feedback
@@ -729,7 +743,7 @@ const App: React.FC = () => {
   }, [
     showExport, showImport, showFeedbackPrompt, showClaudeCodeWarning, showAgentWarning,
     showPermissionModeSetup, showUIFeaturesSetup, showPlanDiffMarketing, pendingPasteImage,
-    submitted, isSubmitting, isApiMode, annotations.length, annotateMode,
+    submitted, isSubmitting, isApiMode, linkedDocHook.isActive, annotations.length, annotateMode,
     origin, getAgentWarning,
   ]);
 
@@ -771,7 +785,27 @@ const App: React.FC = () => {
     // This is just a placeholder for future custom logic
   };
 
-  const annotationsOutput = useMemo(() => exportAnnotations(blocks, annotations, globalAttachments), [blocks, annotations, globalAttachments]);
+  const annotationsOutput = useMemo(() => {
+    const docAnnotations = linkedDocHook.getDocAnnotations();
+    const hasDocAnnotations = Array.from(docAnnotations.values()).some(
+      (d) => d.annotations.length > 0 || d.globalAttachments.length > 0
+    );
+    const hasPlanAnnotations = annotations.length > 0 || globalAttachments.length > 0;
+
+    if (!hasPlanAnnotations && !hasDocAnnotations) {
+      return 'No changes detected.';
+    }
+
+    let output = hasPlanAnnotations
+      ? exportAnnotations(blocks, annotations, globalAttachments)
+      : '';
+
+    if (hasDocAnnotations) {
+      output += exportLinkedDocAnnotations(docAnnotations);
+    }
+
+    return output;
+  }, [blocks, annotations, globalAttachments, linkedDocHook.getDocAnnotations]);
 
   // Quick-save handlers for export dropdown and keyboard shortcut
   const handleDownloadAnnotations = () => {
@@ -918,7 +952,7 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-1 md:gap-2">
-            {isApiMode && (
+            {isApiMode && !linkedDocHook.isActive && (
               <>
                 <button
                   onClick={() => {
@@ -991,7 +1025,7 @@ const App: React.FC = () => {
             )}
 
             <ModeToggle />
-            <Settings taterMode={taterMode} onTaterModeChange={handleTaterModeChange} onIdentityChange={handleIdentityChange} origin={origin} onUIPreferencesChange={setUiPrefs} />
+            {!linkedDocHook.isActive && <Settings taterMode={taterMode} onTaterModeChange={handleTaterModeChange} onIdentityChange={handleIdentityChange} origin={origin} onUIPreferencesChange={setUiPrefs} />}
 
             <button
               onClick={() => setIsPanelOpen(!isPanelOpen)}
@@ -1108,6 +1142,19 @@ const App: React.FC = () => {
           </div>
         </header>
 
+        {/* Linked document error banner */}
+        {linkedDocHook.error && (
+          <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 flex items-center gap-2 flex-shrink-0">
+            <span className="text-xs text-destructive">{linkedDocHook.error}</span>
+            <button
+              onClick={linkedDocHook.dismissError}
+              className="ml-auto text-xs text-destructive/60 hover:text-destructive"
+            >
+              dismiss
+            </button>
+          </div>
+        )}
+
         {/* Main Content */}
         <div className={`flex-1 flex overflow-hidden ${isResizing ? 'select-none' : ''}`}>
           {/* Left Sidebar: collapsed tab flags (when sidebar is closed) */}
@@ -1132,6 +1179,8 @@ const App: React.FC = () => {
                 annotations={annotations}
                 activeSection={activeSection}
                 onTocNavigate={handleTocNavigate}
+                linkedDocFilepath={linkedDocHook.filepath}
+                onLinkedDocBack={linkedDocHook.isActive ? linkedDocHook.back : undefined}
                 versionInfo={versionInfo}
                 versions={planDiff.versions}
                 projectPlans={planDiff.projectPlans}
@@ -1174,6 +1223,7 @@ const App: React.FC = () => {
                 />
               ) : (
                 <Viewer
+                  key={linkedDocHook.isActive ? `doc:${linkedDocHook.filepath}` : 'plan'}
                   ref={viewerRef}
                   blocks={blocks}
                   markdown={markdown}
@@ -1189,10 +1239,12 @@ const App: React.FC = () => {
                   onRemoveGlobalAttachment={handleRemoveGlobalAttachment}
                   repoInfo={repoInfo}
                   stickyActions={uiPrefs.stickyActionsEnabled}
-                  planDiffStats={planDiff.diffStats}
+                  planDiffStats={linkedDocHook.isActive ? null : planDiff.diffStats}
                   isPlanDiffActive={isPlanDiffActive}
                   onPlanDiffToggle={() => setIsPlanDiffActive(!isPlanDiffActive)}
-                  hasPreviousVersion={planDiff.hasPreviousVersion}
+                  hasPreviousVersion={!linkedDocHook.isActive && planDiff.hasPreviousVersion}
+                  onOpenLinkedDoc={linkedDocHook.open}
+                  linkedDocInfo={linkedDocHook.isActive ? { filepath: linkedDocHook.filepath!, onBack: linkedDocHook.back } : null}
                 />
               )}
             </div>

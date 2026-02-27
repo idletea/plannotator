@@ -1,4 +1,4 @@
-import { Block, type ImageAttachment } from '../types';
+import { Block, type Annotation, type ImageAttachment } from '../types';
 
 /**
  * Parsed YAML frontmatter as key-value pairs.
@@ -319,5 +319,79 @@ export const exportAnnotations = (blocks: Block[], annotations: any[], globalAtt
 
   output += `---\n`;
 
+  return output;
+};
+
+export const exportLinkedDocAnnotations = (
+  docAnnotations: Map<string, { annotations: Annotation[]; globalAttachments: ImageAttachment[] }>
+): string => {
+  let output = `\n# Linked Document Feedback\n\nThe following feedback is on documents referenced in the plan.\n\n`;
+
+  for (const [filepath, { annotations, globalAttachments }] of docAnnotations) {
+    if (annotations.length === 0 && globalAttachments.length === 0) continue;
+
+    output += `## ${filepath}\n\n`;
+
+    if (globalAttachments.length > 0) {
+      output += `### Reference Images\n`;
+      output += `Please review these reference images (use the Read tool to view):\n`;
+      globalAttachments.forEach((img, idx) => {
+        output += `${idx + 1}. [${img.name}] \`${img.path}\`\n`;
+      });
+      output += `\n`;
+    }
+
+    // Sort annotations by block and offset
+    const sortedAnns = [...annotations].sort((a, b) => {
+      if (a.blockId !== b.blockId) return a.blockId.localeCompare(b.blockId);
+      return a.startOffset - b.startOffset;
+    });
+
+    output += `I've reviewed this document and have ${annotations.length} piece${annotations.length !== 1 ? 's' : ''} of feedback:\n\n`;
+
+    sortedAnns.forEach((ann, index) => {
+      output += `### ${index + 1}. `;
+
+      switch (ann.type) {
+        case 'DELETION':
+          output += `Remove this\n`;
+          output += `\`\`\`\n${ann.originalText}\n\`\`\`\n`;
+          output += `> I don't want this in the document.\n`;
+          break;
+
+        case 'INSERTION':
+          output += `Add this\n`;
+          output += `\`\`\`\n${ann.text}\n\`\`\`\n`;
+          break;
+
+        case 'REPLACEMENT':
+          output += `Change this\n`;
+          output += `**From:**\n\`\`\`\n${ann.originalText}\n\`\`\`\n`;
+          output += `**To:**\n\`\`\`\n${ann.text}\n\`\`\`\n`;
+          break;
+
+        case 'COMMENT':
+          output += `Feedback on: "${ann.originalText}"\n`;
+          output += `> ${ann.text}\n`;
+          break;
+
+        case 'GLOBAL_COMMENT':
+          output += `General feedback about the document\n`;
+          output += `> ${ann.text}\n`;
+          break;
+      }
+
+      if (ann.images && ann.images.length > 0) {
+        output += `**Attached images:**\n`;
+        ann.images.forEach((img: ImageAttachment) => {
+          output += `- [${img.name}] \`${img.path}\`\n`;
+        });
+      }
+
+      output += '\n';
+    });
+  }
+
+  output += `---\n`;
   return output;
 };
